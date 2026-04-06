@@ -1,0 +1,94 @@
+// android/app/build.gradle
+
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace "com.lexreader"
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        // Apache POI requiere Java 8+
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+        // Desugaring — necesario para POI en Android < 26
+        coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    defaultConfig {
+        applicationId "com.lexreader"
+        minSdkVersion 21
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+
+        // POI tiene muchas clases — multidex es obligatorio
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            // Para APK personal sin keystore, usá la firma debug
+            // Si querés firma propia, configurá signingConfigs acá.
+            signingConfig signingConfigs.debug
+
+            minifyEnabled false   // POI + R8 puede dar problemas; desactivar por ahora
+            shrinkResources false
+        }
+    }
+
+    // Excluir archivos duplicados que trae POI
+    packaging {
+        resources {
+            excludes += [
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/*.kotlin_module",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1",
+            ]
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
+
+dependencies {
+    // Desugaring para APIs modernas en Android < 26
+    coreLibraryDesugaring "com.android.tools.desugar_jdk_libs:2.0.4"
+
+    // Multidex
+    implementation "androidx.multidex:multidex:2.0.1"
+
+    // ── Apache POI ──────────────────────────────────────────────────────────
+    // poi-ooxml trae soporte para DOCX (XWPFDocument) y PPTX (XMLSlideShow).
+    // Excluimos xmlbeans legacy y stax que conflictúan con Android.
+    implementation("org.apache.poi:poi-ooxml:5.2.5") {
+        exclude group: "org.apache.xmlbeans", module: "xmlbeans"
+        exclude group: "com.github.virtuald", module: "curvesapi"
+        exclude group: "org.apache.logging.log4j"
+    }
+
+    // xmlbeans versión compatible con Android
+    implementation("org.apache.xmlbeans:xmlbeans:5.2.0") {
+        exclude group: "stax", module: "stax-api"
+    }
+
+    // Kotlin stdlib
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22"
+}
